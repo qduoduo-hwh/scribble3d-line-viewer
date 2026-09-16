@@ -12,7 +12,6 @@
       --paper: #ece7df;
       --ink: #1c1712;
       --mute: #6d655c;
-      --chip: rgba(28, 23, 18, 0.06);
       --chip-on: #1c1712;
     }
     * { box-sizing: border-box; }
@@ -24,15 +23,10 @@
       font-family: "Instrument Sans", "Noto Serif SC", sans-serif;
       overflow: hidden;
     }
-    #stage {
-      position: fixed;
-      inset: 0;
-    }
+    #stage { position: fixed; inset: 0; }
     header {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       z-index: 2;
       padding: 22px 24px 0;
       pointer-events: none;
@@ -48,17 +42,13 @@
       font-size: clamp(22px, 3vw, 34px);
       letter-spacing: 0.04em;
     }
-    .hint {
-      margin: 6px 0 0;
-      color: var(--mute);
-      font-size: 13px;
-    }
+    .hint { margin: 6px 0 0; color: var(--mute); font-size: 13px; }
     .meta {
       text-align: right;
       color: var(--mute);
       font-size: 12px;
       line-height: 1.55;
-      max-width: 220px;
+      max-width: 240px;
     }
     nav {
       position: fixed;
@@ -92,14 +82,8 @@
       margin-bottom: 8px;
     }
     button.animal.on img { filter: none; }
-    button.animal span {
-      font-size: 13px;
-    }
-    button.animal.on {
-      background: var(--chip-on);
-      color: var(--paper);
-    }
-    button.animal.on img { outline: 1px solid rgba(236, 231, 223, 0.4); }
+    button.animal span { font-size: 13px; }
+    button.animal.on { background: var(--chip-on); color: var(--paper); }
     #status {
       position: fixed;
       left: 24px;
@@ -123,21 +107,21 @@
   <header>
     <div>
       <h1>立体线画</h1>
-      <p class="hint">拖动旋转 · 滚轮缩放 · 三只动物都是 GLB 线模型</p>
+      <p class="hint">单张是一个面上的线描 · 三张立成一个三维体 · 拖动旋转</p>
     </div>
-    <p class="meta">照片生成线，线在三维里炸开。<br />单图深度重建，可小幅度转看。</p>
+    <p class="meta">每张图都贴在自己的画幅平面上。<br />三块画板围成三棱柱，才是三维。</p>
   </header>
   <div id="status">载入中…</div>
   <nav>
-    <button class="animal on" data-src="models/lion.glb" data-name="lion">
+    <button class="animal on" data-index="0">
       <img src="thumbs/lion.jpg" alt="狮子" />
       <span>狮</span>
     </button>
-    <button class="animal" data-src="models/macaw.glb" data-name="macaw">
+    <button class="animal" data-index="1">
       <img src="thumbs/macaw.jpg" alt="鹦鹉" />
       <span>鹦鹉</span>
     </button>
-    <button class="animal" data-src="models/husky.glb" data-name="husky">
+    <button class="animal" data-index="2">
       <img src="thumbs/husky.jpg" alt="哈士奇" />
       <span>哈士奇</span>
     </button>
@@ -155,31 +139,35 @@
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
+    const MODELS = ["models/lion.glb", "models/macaw.glb", "models/husky.glb"];
     const stage = document.getElementById("stage");
     const status = document.getElementById("status");
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
     renderer.setClearColor(0xece7df, 1);
     stage.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xece7df, 2.4, 6.5);
+    scene.fog = new THREE.Fog(0xece7df, 4.2, 11);
     const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.05, 40);
-    camera.position.set(0.15, 0.08, 2.35);
+    camera.position.set(2.4, 0.55, 3.4);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.55;
-    controls.minDistance = 1.1;
-    controls.maxDistance = 4.2;
+    controls.autoRotateSpeed = 0.45;
+    controls.minDistance = 2.0;
+    controls.maxDistance = 8.0;
     controls.target.set(0, 0, 0);
 
+    const sculpture = new THREE.Group();
+    scene.add(sculpture);
     const loader = new GLTFLoader();
-    const cache = new Map();
-    let current = null;
+    const faces = [];
+    let targetYaw = 0;
 
     function paintLines(root) {
       root.traverse((obj) => {
@@ -193,25 +181,55 @@
       });
     }
 
-    async function show(url) {
-      status.textContent = "载入模型…";
-      if (current) scene.remove(current);
-      if (!cache.has(url)) {
-        const gltf = await loader.loadAsync(url);
+    function addPaper(width, height) {
+      const geom = new THREE.PlaneGeometry(width, height);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xf6f1e8,
+        transparent: true,
+        opacity: 0.82,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.z = -0.002;
+      return mesh;
+    }
+
+    async function build() {
+      status.textContent = "把三张平面画立起来…";
+      const gltfs = await Promise.all(MODELS.map((url) => loader.loadAsync(url)));
+      const boxes = [];
+      gltfs.forEach((gltf) => {
         paintLines(gltf.scene);
-        cache.set(url, gltf.scene);
-      }
-      current = cache.get(url);
-      scene.add(current);
-      status.textContent = "拖动查看";
+        boxes.push(new THREE.Box3().setFromObject(gltf.scene));
+      });
+      const width = Math.max(...boxes.map((b) => b.max.x - b.min.x));
+      const height = Math.max(...boxes.map((b) => b.max.y - b.min.y));
+      const radius = width / (2 * Math.sqrt(3));
+
+      gltfs.forEach((gltf, i) => {
+        const yaw = (i * Math.PI * 2) / 3;
+        const face = new THREE.Group();
+        face.add(addPaper(width * 1.04, height * 1.04));
+        face.add(gltf.scene);
+        face.rotation.y = yaw;
+        face.position.set(Math.sin(yaw) * radius, 0, Math.cos(yaw) * radius);
+        sculpture.add(face);
+        faces.push(face);
+      });
+      status.textContent = "绕着三维体看 · 点下面转到那一面";
+    }
+
+    function faceFront(index) {
+      targetYaw = (-index * Math.PI * 2) / 3;
+      controls.autoRotate = false;
+      document.querySelectorAll("button.animal").forEach((b, i) => {
+        b.classList.toggle("on", i === index);
+      });
     }
 
     document.querySelectorAll("button.animal").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll("button.animal").forEach((b) => b.classList.remove("on"));
-        btn.classList.add("on");
-        show(btn.dataset.src);
-      });
+      btn.addEventListener("click", () => faceFront(Number(btn.dataset.index)));
     });
 
     addEventListener("resize", () => {
@@ -219,18 +237,18 @@
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
     });
-
     renderer.domElement.addEventListener("pointerdown", () => {
       controls.autoRotate = false;
     });
 
     function tick() {
+      sculpture.rotation.y += (targetYaw - sculpture.rotation.y) * 0.08;
       controls.update();
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
     }
     tick();
-    show("models/lion.glb").catch((err) => {
+    build().catch((err) => {
       status.textContent = "模型加载失败";
       console.error(err);
     });
