@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>立体线画</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #ece7df;
+      --ink: #1c1712;
+      --mute: #6d655c;
+      --chip: rgba(28, 23, 18, 0.06);
+      --chip-on: #1c1712;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Instrument Sans", "Noto Serif SC", sans-serif;
+      overflow: hidden;
+    }
+    #stage {
+      position: fixed;
+      inset: 0;
+    }
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      padding: 22px 24px 0;
+      pointer-events: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-family: "Noto Serif SC", serif;
+      font-weight: 700;
+      font-size: clamp(22px, 3vw, 34px);
+      letter-spacing: 0.04em;
+    }
+    .hint {
+      margin: 6px 0 0;
+      color: var(--mute);
+      font-size: 13px;
+    }
+    .meta {
+      text-align: right;
+      color: var(--mute);
+      font-size: 12px;
+      line-height: 1.55;
+      max-width: 220px;
+    }
+    nav {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      gap: 10px;
+      padding: 8px;
+      background: rgba(236, 231, 223, 0.78);
+      border: 1px solid rgba(28, 23, 18, 0.12);
+      backdrop-filter: blur(10px);
+    }
+    button.animal {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      padding: 6px 8px 8px;
+      cursor: pointer;
+      width: 108px;
+      text-align: left;
+    }
+    button.animal img {
+      display: block;
+      width: 100%;
+      height: 84px;
+      object-fit: cover;
+      filter: grayscale(0.35) contrast(1.05);
+      margin-bottom: 8px;
+    }
+    button.animal.on img { filter: none; }
+    button.animal span {
+      font-size: 13px;
+    }
+    button.animal.on {
+      background: var(--chip-on);
+      color: var(--paper);
+    }
+    button.animal.on img { outline: 1px solid rgba(236, 231, 223, 0.4); }
+    #status {
+      position: fixed;
+      left: 24px;
+      bottom: 28px;
+      z-index: 2;
+      font-size: 12px;
+      color: var(--mute);
+    }
+    @media (max-width: 640px) {
+      header { padding: 16px 16px 0; flex-direction: column; }
+      .meta { text-align: left; }
+      nav { width: calc(100% - 24px); justify-content: space-between; }
+      button.animal { width: auto; flex: 1; }
+      button.animal img { height: 72px; }
+      #status { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <header>
+    <div>
+      <h1>立体线画</h1>
+      <p class="hint">拖动旋转 · 滚轮缩放 · 三只动物都是 GLB 线模型</p>
+    </div>
+    <p class="meta">照片生成线，线在三维里炸开。<br />单图深度重建，可小幅度转看。</p>
+  </header>
+  <div id="status">载入中…</div>
+  <nav>
+    <button class="animal on" data-src="models/lion.glb" data-name="lion">
+      <img src="thumbs/lion.jpg" alt="狮子" />
+      <span>狮</span>
+    </button>
+    <button class="animal" data-src="models/macaw.glb" data-name="macaw">
+      <img src="thumbs/macaw.jpg" alt="鹦鹉" />
+      <span>鹦鹉</span>
+    </button>
+    <button class="animal" data-src="models/husky.glb" data-name="husky">
+      <img src="thumbs/husky.jpg" alt="哈士奇" />
+      <span>哈士奇</span>
+    </button>
+  </nav>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+    const stage = document.getElementById("stage");
+    const status = document.getElementById("status");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setClearColor(0xece7df, 1);
+    stage.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0xece7df, 2.4, 6.5);
+    const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.05, 40);
+    camera.position.set(0.15, 0.08, 2.35);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.55;
+    controls.minDistance = 1.1;
+    controls.maxDistance = 4.2;
+    controls.target.set(0, 0, 0);
+
+    const loader = new GLTFLoader();
+    const cache = new Map();
+    let current = null;
+
+    function paintLines(root) {
+      root.traverse((obj) => {
+        if (obj.isLine || obj.isLineSegments) {
+          obj.material = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            toneMapped: false,
+          });
+          obj.frustumCulled = false;
+        }
+      });
+    }
+
+    async function show(url) {
+      status.textContent = "载入模型…";
+      if (current) scene.remove(current);
+      if (!cache.has(url)) {
+        const gltf = await loader.loadAsync(url);
+        paintLines(gltf.scene);
+        cache.set(url, gltf.scene);
+      }
+      current = cache.get(url);
+      scene.add(current);
+      status.textContent = "拖动查看";
+    }
+
+    document.querySelectorAll("button.animal").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("button.animal").forEach((b) => b.classList.remove("on"));
+        btn.classList.add("on");
+        show(btn.dataset.src);
+      });
+    });
+
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    renderer.domElement.addEventListener("pointerdown", () => {
+      controls.autoRotate = false;
+    });
+
+    function tick() {
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    tick();
+    show("models/lion.glb").catch((err) => {
+      status.textContent = "模型加载失败";
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
