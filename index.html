@@ -8,97 +8,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --paper: #ece7df;
-      --ink: #1c1712;
-      --mute: #6d655c;
-      --chip-on: #1c1712;
-    }
+    :root { --paper:#ece7df; --ink:#1c1712; --mute:#6d655c; }
     * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      height: 100%;
-      background: var(--paper);
-      color: var(--ink);
-      font-family: "Instrument Sans", "Noto Serif SC", sans-serif;
-      overflow: hidden;
-    }
-    #stage { position: fixed; inset: 0; }
-    header {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 2;
-      padding: 22px 24px 0;
-      pointer-events: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    h1 {
-      margin: 0;
-      font-family: "Noto Serif SC", serif;
-      font-weight: 700;
-      font-size: clamp(22px, 3vw, 34px);
-      letter-spacing: 0.04em;
-    }
-    .hint { margin: 6px 0 0; color: var(--mute); font-size: 13px; }
-    .meta {
-      text-align: right;
-      color: var(--mute);
-      font-size: 12px;
-      line-height: 1.55;
-      max-width: 240px;
-    }
-    nav {
-      position: fixed;
-      left: 50%;
-      bottom: 22px;
-      transform: translateX(-50%);
-      z-index: 2;
-      display: flex;
-      gap: 10px;
-      padding: 8px;
-      background: rgba(236, 231, 223, 0.78);
-      border: 1px solid rgba(28, 23, 18, 0.12);
-      backdrop-filter: blur(10px);
-    }
-    button.animal {
-      appearance: none;
-      border: 0;
-      background: transparent;
-      color: var(--ink);
-      padding: 6px 8px 8px;
-      cursor: pointer;
-      width: 108px;
-      text-align: left;
-    }
-    button.animal img {
-      display: block;
-      width: 100%;
-      height: 84px;
-      object-fit: cover;
-      filter: grayscale(0.35) contrast(1.05);
-      margin-bottom: 8px;
-    }
-    button.animal.on img { filter: none; }
-    button.animal span { font-size: 13px; }
-    button.animal.on { background: var(--chip-on); color: var(--paper); }
-    #status {
-      position: fixed;
-      left: 24px;
-      bottom: 28px;
-      z-index: 2;
-      font-size: 12px;
-      color: var(--mute);
-    }
-    @media (max-width: 640px) {
-      header { padding: 16px 16px 0; flex-direction: column; }
-      .meta { text-align: left; }
-      nav { width: calc(100% - 24px); justify-content: space-between; }
-      button.animal { width: auto; flex: 1; }
-      button.animal img { height: 72px; }
-      #status { display: none; }
+    html, body { margin:0; height:100%; background:var(--paper); color:var(--ink); font-family:"Instrument Sans","Noto Serif SC",sans-serif; overflow:hidden; }
+    #stage { position:fixed; inset:0; }
+    header { position:fixed; top:0; left:0; right:0; z-index:2; padding:22px 24px 0; pointer-events:none; display:flex; justify-content:space-between; gap:16px; }
+    h1 { margin:0; font-family:"Noto Serif SC",serif; font-weight:700; font-size:clamp(22px,3vw,34px); letter-spacing:.04em; }
+    .hint { margin:6px 0 0; color:var(--mute); font-size:13px; }
+    .meta { text-align:right; color:var(--mute); font-size:12px; line-height:1.55; max-width:260px; }
+    nav { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:2; display:flex; gap:8px; padding:8px; background:rgba(236,231,223,.8); border:1px solid rgba(28,23,18,.12); backdrop-filter:blur(10px); }
+    nav button { appearance:none; border:0; background:transparent; color:var(--ink); padding:10px 16px; cursor:pointer; font-size:13px; }
+    nav button.on { background:#1c1712; color:var(--paper); }
+    #status { position:fixed; left:24px; bottom:28px; z-index:2; font-size:12px; color:var(--mute); }
+    @media (max-width:640px) {
+      header { flex-direction:column; padding:16px; }
+      .meta { text-align:left; }
+      #status { display:none; }
     }
   </style>
 </head>
@@ -107,42 +32,30 @@
   <header>
     <div>
       <h1>立体线画</h1>
-      <p class="hint">单张是一个面上的线描 · 三张立成一个三维体 · 拖动旋转</p>
+      <p class="hint">两张照片求交成三维线 · 拖动旋转 · 换角度看会散开再聚成另一面</p>
     </div>
-    <p class="meta">每张图都贴在自己的画幅平面上。<br />三块画板围成三棱柱，才是三维。</p>
+    <p class="meta">线在空间里，不在纸上。<br />对着正面像正面那张画，转到侧面像侧面那张。</p>
   </header>
   <div id="status">载入中…</div>
   <nav>
-    <button class="animal on" data-index="0">
-      <img src="thumbs/lion.jpg" alt="狮子" />
-      <span>狮</span>
-    </button>
-    <button class="animal" data-index="1">
-      <img src="thumbs/macaw.jpg" alt="鹦鹉" />
-      <span>鹦鹉</span>
-    </button>
-    <button class="animal" data-index="2">
-      <img src="thumbs/husky.jpg" alt="哈士奇" />
-      <span>哈士奇</span>
-    </button>
+    <button class="on" data-view="front">正面</button>
+    <button data-view="side">侧面</button>
+    <button data-view="low">仰视</button>
+    <button data-view="free">自由转</button>
   </nav>
   <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-      }
-    }
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
   </script>
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-    const MODELS = ["models/lion.glb", "models/macaw.glb", "models/husky.glb"];
     const stage = document.getElementById("stage");
     const status = document.getElementById("status");
-
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
@@ -150,86 +63,57 @@
     stage.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xece7df, 4.2, 11);
+    scene.fog = new THREE.Fog(0xece7df, 3.2, 8.5);
     const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.05, 40);
-    camera.position.set(2.4, 0.55, 3.4);
+    camera.position.set(0.15, 0.08, 2.6);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
+    controls.dampingFactor = 0.07;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.45;
-    controls.minDistance = 2.0;
-    controls.maxDistance = 8.0;
+    controls.autoRotateSpeed = 0.4;
+    controls.minDistance = 1.4;
+    controls.maxDistance = 6;
     controls.target.set(0, 0, 0);
 
-    const sculpture = new THREE.Group();
-    scene.add(sculpture);
-    const loader = new GLTFLoader();
-    const faces = [];
-    let targetYaw = 0;
+    const poses = {
+      front: new THREE.Vector3(0.1, 0.05, 2.55),
+      side: new THREE.Vector3(2.15, 0.08, 1.35),
+      low: new THREE.Vector3(0.25, -1.35, 2.1),
+    };
+    let goal = null;
 
-    function paintLines(root) {
+    function paint(root) {
       root.traverse((obj) => {
         if (obj.isLine || obj.isLineSegments) {
-          obj.material = new THREE.LineBasicMaterial({
-            vertexColors: true,
-            toneMapped: false,
-          });
+          obj.material = new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false });
           obj.frustumCulled = false;
         }
       });
     }
 
-    function addPaper(width, height) {
-      const geom = new THREE.PlaneGeometry(width, height);
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xf6f1e8,
-        transparent: true,
-        opacity: 0.82,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-      const mesh = new THREE.Mesh(geom, mat);
-      mesh.position.z = -0.002;
-      return mesh;
-    }
+    new GLTFLoader().load("models/person.glb", (gltf) => {
+      paint(gltf.scene);
+      scene.add(gltf.scene);
+      status.textContent = "拖动查看 · 点正面/侧面会对准那两张照片的视角";
+    }, undefined, (err) => {
+      status.textContent = "模型加载失败";
+      console.error(err);
+    });
 
-    async function build() {
-      status.textContent = "把三张平面画立起来…";
-      const gltfs = await Promise.all(MODELS.map((url) => loader.loadAsync(url)));
-      const boxes = [];
-      gltfs.forEach((gltf) => {
-        paintLines(gltf.scene);
-        boxes.push(new THREE.Box3().setFromObject(gltf.scene));
+    document.querySelectorAll("nav button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("nav button").forEach((b) => b.classList.remove("on"));
+        btn.classList.add("on");
+        const v = btn.dataset.view;
+        if (v === "free") {
+          goal = null;
+          controls.autoRotate = true;
+          return;
+        }
+        controls.autoRotate = false;
+        goal = poses[v].clone();
       });
-      const width = Math.max(...boxes.map((b) => b.max.x - b.min.x));
-      const height = Math.max(...boxes.map((b) => b.max.y - b.min.y));
-      const radius = width / (2 * Math.sqrt(3));
-
-      gltfs.forEach((gltf, i) => {
-        const yaw = (i * Math.PI * 2) / 3;
-        const face = new THREE.Group();
-        face.add(addPaper(width * 1.04, height * 1.04));
-        face.add(gltf.scene);
-        face.rotation.y = yaw;
-        face.position.set(Math.sin(yaw) * radius, 0, Math.cos(yaw) * radius);
-        sculpture.add(face);
-        faces.push(face);
-      });
-      status.textContent = "绕着三维体看 · 点下面转到那一面";
-    }
-
-    function faceFront(index) {
-      targetYaw = (-index * Math.PI * 2) / 3;
-      controls.autoRotate = false;
-      document.querySelectorAll("button.animal").forEach((b, i) => {
-        b.classList.toggle("on", i === index);
-      });
-    }
-
-    document.querySelectorAll("button.animal").forEach((btn) => {
-      btn.addEventListener("click", () => faceFront(Number(btn.dataset.index)));
     });
 
     addEventListener("resize", () => {
@@ -238,20 +122,20 @@
       renderer.setSize(innerWidth, innerHeight);
     });
     renderer.domElement.addEventListener("pointerdown", () => {
+      goal = null;
       controls.autoRotate = false;
     });
 
     function tick() {
-      sculpture.rotation.y += (targetYaw - sculpture.rotation.y) * 0.08;
+      if (goal) {
+        camera.position.lerp(goal, 0.08);
+        if (camera.position.distanceTo(goal) < 0.04) goal = null;
+      }
       controls.update();
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
     }
     tick();
-    build().catch((err) => {
-      status.textContent = "模型加载失败";
-      console.error(err);
-    });
   </script>
 </body>
 </html>
